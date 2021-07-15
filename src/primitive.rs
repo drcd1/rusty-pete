@@ -2,6 +2,7 @@
 use crate::math::Vec3;
 use crate::material::Material;
 use crate::material::DummyMaterial;
+use crate::material::DiffuseMaterial;
 
 use std::option::Option;
 use crate::constants::EPS;
@@ -22,6 +23,7 @@ impl Ray {
 
 pub struct Intersection<'a>{
     pub p: Vec3,
+    pub wo: Vec3,
     pub n: Vec3,
     pub uv: Vec3,
     pub mat: &'a dyn Material
@@ -32,36 +34,37 @@ pub trait Primitive {
     fn intersectAny(&self, r: &mut Ray) -> bool;
 }
 
-pub trait Group: Primitive {
-    fn add(&mut self, p: Box<dyn Primitive>);
+pub trait Group<'a>: Primitive {
+    fn add(&mut self, p: Box<dyn Primitive + 'a>);
     fn buildIndex(&mut self){}
 }
 
 
-pub struct SimpleGroup{
-    primitives: Vec<Box<dyn Primitive>>
+pub struct SimpleGroup<'a>{
+    primitives: Vec<Box<dyn Primitive +'a>>
 } 
 
-impl SimpleGroup{
-    pub fn new() -> SimpleGroup {
+impl<'a> SimpleGroup<'a>{
+    pub fn new() -> SimpleGroup<'a> {
         return SimpleGroup{primitives: Vec::new()}
     }
 }
 
-impl Group for SimpleGroup {
-    fn add(&mut self, p: Box<dyn Primitive>){
+impl<'a> Group<'a> for SimpleGroup<'a> {
+    fn add(&mut self, p: Box<dyn Primitive + 'a>  ){
         self.primitives.push(p);
     }
 }
 
-pub struct Sphere {
+pub struct Sphere<'a> {
     pub o: Vec3,
-    pub r: f32
+    pub r: f32,
+    pub mat: &'a dyn Material
 }
 
 
-impl Primitive for Sphere {
-    fn intersect(&self, r:&mut Ray) -> Option<Intersection> {
+impl<'a> Primitive for Sphere<'a> {
+    fn intersect(&self, r:&mut Ray) -> Option<Intersection<'a>> {
         if !self.intersectAny(r) {
             return None;
         }
@@ -70,8 +73,9 @@ impl Primitive for Sphere {
         return Some(Intersection{
             n: (x-self.o).normalized(),
             p: x,
+            wo: r.d*(-1.0),
             uv: Vec3::new(),
-            mat: &DummyMaterial{}
+            mat: self.mat
         })
     }
     
@@ -120,7 +124,7 @@ impl Primitive for Sphere {
 }
 
 
-impl Primitive for SimpleGroup{
+impl<'a> Primitive for SimpleGroup<'a>{
     fn intersect(&self, r:&mut Ray) -> Option<Intersection> {
         let mut it = None;
         for p in &self.primitives{

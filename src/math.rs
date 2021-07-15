@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 pub fn float2u8(a: f32) -> u8 {
     return (clamp(a,0.0,0.9999)*255.0) as u8;
 }
@@ -328,4 +330,46 @@ pub fn solve_quadratic(a : f32,b: f32,c: f32) -> Option<[f32;2]>{
     let div = 1.0/(2.0*a);
     return Some([(-b-det)*div, (-b+det)*div]);
 
+}
+
+pub fn sample_hemisphere_cos(r1: f32, r2: f32) -> Vec3 {
+    let theta = r1*2.0*PI;
+    let sin_phi = r2.sqrt();
+    let cos_phi = (1.0-sin_phi*sin_phi).sqrt();
+
+    return Vec3::xyz(theta.cos()*sin_phi,theta.sin()*sin_phi,cos_phi);
+
+}
+
+//gets an orthogonal system -- function inpired PBRT
+pub fn orthogonal(v1: Vec3) -> (Vec3,Vec3,Vec3) {
+    let abs_x = v1.x.abs();
+    let abs_y = v1.y.abs();
+    let abs_z = v1.z.abs();
+
+    let aux;
+    if abs_x<abs_y {
+        if abs_x < abs_z {
+            aux = Vec3::xyz(1.0,0.0,0.0);
+        } else {
+            aux = Vec3::xyz(0.0,0.0,1.0);
+        }
+    } else {
+        if(abs_y<abs_z) {
+            aux = Vec3::xyz(0.0,1.0,0.0);
+        } else {
+            aux = Vec3::xyz(0.0,0.0,1.0);
+        }
+    }
+
+    let aux2 = v1.cross(&aux);
+    return (v1.normalized(), aux2.cross(&v1).normalized(), aux2.normalized());
+}
+
+pub fn linear2srgb(a:f32) -> f32 {
+    if(a>0.0031308){
+        (1.0+0.055)*a.powf(1.0/2.4)-0.055
+    } else {
+        12.92*a
+    }
 }

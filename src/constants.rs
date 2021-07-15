@@ -1,1 +1,1 @@
-pub const EPS : f32 = 1e-4;
+pub const EPS : f32 = 2e-4;
